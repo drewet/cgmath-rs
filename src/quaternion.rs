@@ -1,5 +1,5 @@
 // Copyright 2013-2014 The CGMath Developers. For a full listing of the authors,
-// refer to the AUTHORS file at the top-level directory of this distribution.
+// refer to the Cargo.toml file at the top-level directory of this distribution.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -13,31 +13,29 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use std::f64;
 use std::fmt;
 use std::mem;
-use std::f64;
-use std::num::{cast, Float};
 use std::ops::*;
+
+use rand::{Rand, Rng};
+use rust_num::{Float, one, zero};
+use rust_num::traits::cast;
 
 use angle::{Angle, Rad, acos, sin, sin_cos, rad};
 use approx::ApproxEq;
 use array::Array1;
-use matrix::{Matrix3, ToMatrix3, ToMatrix4, Matrix4};
-use num::{BaseFloat, one, zero};
+use matrix::{Matrix3, Matrix4};
+use num::BaseFloat;
 use point::Point3;
-use rotation::{Rotation, Rotation3, Basis3, ToBasis3};
+use rotation::{Rotation, Rotation3, Basis3};
 use vector::{Vector3, Vector, EuclideanVector};
+
 
 /// A [quaternion](https://en.wikipedia.org/wiki/Quaternion) in scalar/vector
 /// form.
-#[derive(Copy, Clone, PartialEq, RustcEncodable, RustcDecodable, Rand)]
+#[derive(Copy, Clone, PartialEq, RustcEncodable, RustcDecodable)]
 pub struct Quaternion<S> { pub s: S, pub v: Vector3<S> }
-
-/// Represents types which can be expressed as a quaternion.
-pub trait ToQuaternion<S: BaseFloat> {
-    /// Convert this value to a quaternion.
-    fn to_quaternion(&self) -> Quaternion<S>;
-}
 
 impl<S: Copy + BaseFloat> Array1<S> for Quaternion<S> {
     #[inline]
@@ -54,19 +52,17 @@ impl<S: BaseFloat> Index<usize> for Quaternion<S> {
     type Output = S;
 
     #[inline]
-    fn index<'a>(&'a self, i: &usize) -> &'a S {
+    fn index<'a>(&'a self, i: usize) -> &'a S {
         let slice: &[S; 4] = unsafe { mem::transmute(self) };
-        &slice[*i]
+        &slice[i]
     }
 }
 
 impl<S: BaseFloat> IndexMut<usize> for Quaternion<S> {
-    type Output = S;
-
     #[inline]
-    fn index_mut<'a>(&'a mut self, i: &usize) -> &'a mut S {
+    fn index_mut<'a>(&'a mut self, i: usize) -> &'a mut S {
         let slice: &'a mut [S; 4] = unsafe { mem::transmute(self) };
-        &mut slice[*i]
+        &mut slice[i]
     }
 }
 
@@ -240,8 +236,6 @@ impl<S: BaseFloat> Quaternion<S> {
     /// - [Arcsynthesis OpenGL tutorial]
     ///   (http://www.arcsynthesis.org/gltut/Positioning/Tut08%20Interpolation.html)
     pub fn slerp(&self, other: &Quaternion<S>, amount: S) -> Quaternion<S> {
-        use std::num::cast;
-
         let dot = self.dot(other);
         let dot_threshold = cast(0.9995f64).unwrap();
 
@@ -310,24 +304,24 @@ impl<S: BaseFloat> Quaternion<S> {
     }
 }
 
-impl<S: BaseFloat> ToMatrix3<S> for Quaternion<S> {
+impl<S: BaseFloat> From<Quaternion<S>> for Matrix3<S> {
     /// Convert the quaternion to a 3 x 3 rotation matrix
-    fn to_matrix3(&self) -> Matrix3<S> {
-        let x2 = self.v.x + self.v.x;
-        let y2 = self.v.y + self.v.y;
-        let z2 = self.v.z + self.v.z;
+    fn from(quat: Quaternion<S>) -> Matrix3<S> {
+        let x2 = quat.v.x + quat.v.x;
+        let y2 = quat.v.y + quat.v.y;
+        let z2 = quat.v.z + quat.v.z;
 
-        let xx2 = x2 * self.v.x;
-        let xy2 = x2 * self.v.y;
-        let xz2 = x2 * self.v.z;
+        let xx2 = x2 * quat.v.x;
+        let xy2 = x2 * quat.v.y;
+        let xz2 = x2 * quat.v.z;
 
-        let yy2 = y2 * self.v.y;
-        let yz2 = y2 * self.v.z;
-        let zz2 = z2 * self.v.z;
+        let yy2 = y2 * quat.v.y;
+        let yz2 = y2 * quat.v.z;
+        let zz2 = z2 * quat.v.z;
 
-        let sy2 = y2 * self.s;
-        let sz2 = z2 * self.s;
-        let sx2 = x2 * self.s;
+        let sy2 = y2 * quat.s;
+        let sz2 = z2 * quat.s;
+        let sx2 = x2 * quat.s;
 
         Matrix3::new(one::<S>() - yy2 - zz2, xy2 + sz2, xz2 - sy2,
                      xy2 - sz2, one::<S>() - xx2 - zz2, yz2 + sx2,
@@ -335,24 +329,24 @@ impl<S: BaseFloat> ToMatrix3<S> for Quaternion<S> {
     }
 }
 
-impl<S: BaseFloat> ToMatrix4<S> for Quaternion<S> {
+impl<S: BaseFloat> From<Quaternion<S>> for Matrix4<S> {
     /// Convert the quaternion to a 4 x 4 rotation matrix
-    fn to_matrix4(&self) -> Matrix4<S> {
-        let x2 = self.v.x + self.v.x;
-        let y2 = self.v.y + self.v.y;
-        let z2 = self.v.z + self.v.z;
+    fn from(quat: Quaternion<S>) -> Matrix4<S> {
+        let x2 = quat.v.x + quat.v.x;
+        let y2 = quat.v.y + quat.v.y;
+        let z2 = quat.v.z + quat.v.z;
 
-        let xx2 = x2 * self.v.x;
-        let xy2 = x2 * self.v.y;
-        let xz2 = x2 * self.v.z;
+        let xx2 = x2 * quat.v.x;
+        let xy2 = x2 * quat.v.y;
+        let xz2 = x2 * quat.v.z;
 
-        let yy2 = y2 * self.v.y;
-        let yz2 = y2 * self.v.z;
-        let zz2 = z2 * self.v.z;
+        let yy2 = y2 * quat.v.y;
+        let yz2 = y2 * quat.v.z;
+        let zz2 = z2 * quat.v.z;
 
-        let sy2 = y2 * self.s;
-        let sz2 = z2 * self.s;
-        let sx2 = x2 * self.s;
+        let sy2 = y2 * quat.s;
+        let sz2 = z2 * quat.s;
+        let sx2 = x2 * quat.s;
 
         Matrix4::new(one::<S>() - yy2 - zz2, xy2 + sz2, xz2 - sy2, zero::<S>(),
                      xy2 - sz2, one::<S>() - xx2 - zz2, yz2 + sx2, zero::<S>(),
@@ -363,14 +357,14 @@ impl<S: BaseFloat> ToMatrix4<S> for Quaternion<S> {
 
 impl<S: BaseFloat> Neg for Quaternion<S> {
     type Output = Quaternion<S>;
- 
+
     #[inline]
     fn neg(self) -> Quaternion<S> {
         Quaternion::from_sv(-self.s, -self.v)
     }
 }
 
-impl<S: BaseFloat> fmt::Show for Quaternion<S> {
+impl<S: BaseFloat> fmt::Debug for Quaternion<S> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{:?} + {:?}i + {:?}j + {:?}k",
                 self.s,
@@ -382,14 +376,9 @@ impl<S: BaseFloat> fmt::Show for Quaternion<S> {
 
 // Quaternion Rotation impls
 
-impl<S: BaseFloat> ToBasis3<S> for Quaternion<S> {
+impl<S: BaseFloat> From<Quaternion<S>> for Basis3<S> {
     #[inline]
-    fn to_rot3(&self) -> Basis3<S> { Basis3::from_quaternion(self) }
-}
-
-impl<S: BaseFloat> ToQuaternion<S> for Quaternion<S> {
-    #[inline]
-    fn to_quaternion(&self) -> Quaternion<S> { self.clone() }
+    fn from(quat: Quaternion<S>) -> Basis3<S> { Basis3::from_quaternion(&quat) }
 }
 
 impl<S: BaseFloat + 'static> Rotation<S, Vector3<S>, Point3<S>> for Quaternion<S> {
@@ -398,7 +387,7 @@ impl<S: BaseFloat + 'static> Rotation<S, Vector3<S>, Point3<S>> for Quaternion<S
 
     #[inline]
     fn look_at(dir: &Vector3<S>, up: &Vector3<S>) -> Quaternion<S> {
-        Matrix3::look_at(dir, up).to_quaternion()
+        Matrix3::look_at(dir, up).into()
     }
 
     #[inline]
@@ -442,5 +431,12 @@ impl<S: BaseFloat> Rotation3<S> for Quaternion<S> where S: 'static {
                         s1 * s2 * c3 + c1 * c2 * s3,
                         s1 * c2 * c3 + c1 * s2 * s3,
                         c1 * s2 * c3 - s1 * c2 * s3)
+    }
+}
+
+impl<S: BaseFloat + Rand> Rand for Quaternion<S> {
+    #[inline]
+    fn rand<R: Rng>(rng: &mut R) -> Quaternion<S> {
+       Quaternion::from_sv(rng.gen(), rng.gen())
     }
 }

@@ -1,5 +1,5 @@
 // Copyright 2013-2014 The CGMath Developers. For a full listing of the authors,
-// refer to the AUTHORS file at the top-level directory of this distribution.
+// refer to the Cargo.toml file at the top-level directory of this distribution.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -20,13 +20,18 @@
 //! dimension) where the slope of every line is either 0 or undefined. These
 //! are useful for very cheap collision detection.
 
+use std::fmt;
+
+use rust_num::{Float, zero, one};
+
+use bound::*;
 use point::{Point, Point2, Point3};
 use vector::{Vector, Vector2, Vector3};
 use ray::{Ray2};
 use intersect::Intersect;
-use num::{zero, one, BaseNum, BaseFloat};
-use std::fmt;
-use std::num::Float;
+use num::{BaseNum, BaseFloat};
+use plane::Plane;
+
 
 pub trait Aabb<S: BaseNum, V: Vector<S>, P: Point<S, V>>: Sized {
     /// Create a new AABB using two points as opposing corners.
@@ -101,6 +106,15 @@ impl<S: BaseNum> Aabb2<S> {
                              p1.y.partial_max(p2.y)),
         }
     }
+
+    /// Compute corners.
+    #[inline]
+    pub fn to_corners(&self) -> [Point2<S>; 4] {
+        [self.min,
+        Point2::new(self.max.x, self.min.y),
+        Point2::new(self.min.x, self.max.y),
+        self.max]
+    }
 }
 
 impl<S: BaseNum> Aabb<S, Vector2<S>, Point2<S>> for Aabb2<S> {
@@ -122,7 +136,7 @@ impl<S: BaseNum> Aabb<S, Vector2<S>, Point2<S>> for Aabb2<S> {
     }
 }
 
-impl<S: BaseNum> fmt::Show for Aabb2<S> {
+impl<S: BaseNum> fmt::Debug for Aabb2<S> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "[{:?} - {:?}]", self.min, self.max)
     }
@@ -148,6 +162,19 @@ impl<S: BaseNum> Aabb3<S> {
                              p1.z.partial_max(p2.z)),
         }
     }
+
+    /// Compute corners.
+    #[inline]
+    pub fn to_corners(&self) -> [Point3<S>; 8] {
+        [self.min,
+        Point3::new(self.max.x, self.min.y, self.min.z),
+        Point3::new(self.min.x, self.max.y, self.min.z),
+        Point3::new(self.max.x, self.max.y, self.min.z),
+        Point3::new(self.min.x, self.min.y, self.max.z),
+        Point3::new(self.max.x, self.min.y, self.max.z),
+        Point3::new(self.min.x, self.max.y, self.max.z),
+        self.max]
+    }
 }
 
 impl<S: BaseNum> Aabb<S, Vector3<S>, Point3<S>> for Aabb3<S> {
@@ -169,7 +196,7 @@ impl<S: BaseNum> Aabb<S, Vector3<S>, Point3<S>> for Aabb3<S> {
     }
 }
 
-impl<S: BaseNum> fmt::Show for Aabb3<S> {
+impl<S: BaseNum> fmt::Debug for Aabb3<S> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "[{:?} - {:?}]", self.min, self.max)
     }
@@ -177,43 +204,53 @@ impl<S: BaseNum> fmt::Show for Aabb3<S> {
 
 impl<S: BaseFloat> Intersect<Option<Point2<S>>> for (Ray2<S>, Aabb2<S>) {
     fn intersection(&self) -> Option<Point2<S>> {
-        match *self {
-            (ref ray, ref aabb) => {
+        let (ref ray, ref aabb) = *self;
 
-                let mut tmin: S = Float::neg_infinity();
-                let mut tmax: S = Float::infinity();
+        let mut tmin: S = Float::neg_infinity();
+        let mut tmax: S = Float::infinity();
 
-                if ray.direction.x != zero() {
-                    let tx1 = (aabb.min.x - ray.origin.x) / ray.direction.x;
-                    let tx2 = (aabb.max.x - ray.origin.x) / ray.direction.x;
-                    tmin = tmin.max(tx1.min(tx2));
-                    tmax = tmax.min(tx1.max(tx2));
-                }
+        if ray.direction.x != zero() {
+            let tx1 = (aabb.min.x - ray.origin.x) / ray.direction.x;
+            let tx2 = (aabb.max.x - ray.origin.x) / ray.direction.x;
+            tmin = tmin.max(tx1.min(tx2));
+            tmax = tmax.min(tx1.max(tx2));
+        }
 
-                if ray.direction.y != zero() {
-                    let ty1 = (aabb.min.y - ray.origin.y) / ray.direction.y;
-                    let ty2 = (aabb.max.y - ray.origin.y) / ray.direction.y;
-                    tmin = tmin.max(ty1.min(ty2));
-                    tmax = tmax.min(ty1.max(ty2));
-                }
+        if ray.direction.y != zero() {
+            let ty1 = (aabb.min.y - ray.origin.y) / ray.direction.y;
+            let ty2 = (aabb.max.y - ray.origin.y) / ray.direction.y;
+            tmin = tmin.max(ty1.min(ty2));
+            tmax = tmax.min(ty1.max(ty2));
+        }
 
-                if tmin < zero() && tmax < zero() {
-                    None
-                }
-                else if tmax >= tmin {
-                    if tmin >= zero() {
-                        Some(Point2::new(ray.origin.x + ray.direction.x * tmin,
-                                         ray.origin.y + ray.direction.y * tmin))
-                    }
-                    else {
-                        Some(Point2::new(ray.origin.x + ray.direction.x * tmax,
-                                         ray.origin.y + ray.direction.y * tmax))
-                    }
-                }
-                else {
-                    None
-                }
+        if tmin < zero() && tmax < zero() {
+            None
+        }
+        else if tmax >= tmin {
+            if tmin >= zero() {
+                Some(Point2::new(ray.origin.x + ray.direction.x * tmin,
+                                 ray.origin.y + ray.direction.y * tmin))
+            }
+            else {
+                Some(Point2::new(ray.origin.x + ray.direction.x * tmax,
+                                 ray.origin.y + ray.direction.y * tmax))
             }
         }
+        else {
+            None
+        }
+    }
+}
+
+impl<S: BaseFloat + 'static> Bound<S> for Aabb3<S> {
+    fn relate_plane(&self, plane: &Plane<S>) -> Relation {
+        let corners = self.to_corners();
+        let first = corners[0].relate_plane(plane);
+        for p in corners[1..].iter() {
+            if p.relate_plane(plane) != first {
+                return Relation::Cross;
+            }
+        }
+        first
     }
 }

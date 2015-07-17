@@ -1,5 +1,5 @@
 // Copyright 2013-2014 The CGMath Developers. For a full listing of the authors,
-// refer to the AUTHORS file at the top-level directory of this distribution.
+// refer to the Cargo.toml file at the top-level directory of this distribution.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -21,17 +21,22 @@ use std::fmt;
 use std::mem;
 use std::ops::*;
 
+use rust_num::{one, zero};
+
 use approx::ApproxEq;
 use array::{Array1, FixedArray};
-use num::{BaseNum, BaseFloat, one, zero};
+use bound::*;
+use matrix::{Matrix, Matrix4};
+use num::{BaseNum, BaseFloat};
+use plane::Plane;
 use vector::*;
 
 /// A point in 2-dimensional space.
-#[derive(PartialEq, Copy, Clone, Hash, RustcEncodable, RustcDecodable)]
+#[derive(PartialEq, Eq, Copy, Clone, Hash, RustcEncodable, RustcDecodable)]
 pub struct Point2<S> { pub x: S, pub y: S }
 
 /// A point in 3-dimensional space.
-#[derive(PartialEq, Copy, Clone, Hash, RustcEncodable, RustcDecodable)]
+#[derive(PartialEq, Eq, Copy, Clone, Hash, RustcEncodable, RustcDecodable)]
 pub struct Point3<S> { pub x: S, pub y: S, pub z: S }
 
 
@@ -73,13 +78,17 @@ pub trait Point<S: BaseNum, V: Vector<S>>: Array1<S> + Clone {
     fn to_vec(&self) -> V;
 
     /// Multiply each component by a scalar, returning the new point.
+    #[must_use]
     fn mul_s(&self, s: S) -> Self;
     /// Divide each component by a scalar, returning the new point.
+    #[must_use]
     fn div_s(&self, s: S) -> Self;
     /// Subtract a scalar from each component, returning the new point.
+    #[must_use]
     fn rem_s(&self, s: S) -> Self;
 
     /// Add a vector to this point, returning the new point.
+    #[must_use]
     fn add_v(&self, v: &V) -> Self;
     /// Subtract another point from this one, returning a new vector.
     fn sub_p(&self, p: &Self) -> V;
@@ -97,8 +106,10 @@ pub trait Point<S: BaseNum, V: Vector<S>>: Array1<S> + Clone {
     /// This is a weird one, but its useful for plane calculations.
     fn dot(&self, v: &V) -> S;
 
+    #[must_use]
     fn min(&self, p: &Self) -> Self;
 
+    #[must_use]
     fn max(&self, p: &Self) -> Self;
 }
 
@@ -138,16 +149,15 @@ impl<S> FixedArray<[S; 2]> for Point2<S> {
 impl<S: BaseNum> Index<usize> for Point2<S> {
     type Output = S;
     #[inline]
-    fn index<'a>(&'a self, i: &usize) -> &'a S {
-        &self.as_fixed()[*i]
+    fn index<'a>(&'a self, i: usize) -> &'a S {
+        &self.as_fixed()[i]
     }
 }
 
 impl<S: BaseNum> IndexMut<usize> for Point2<S> {
-    type Output = S;
     #[inline]
-    fn index_mut<'a>(&'a mut self, i: &usize) -> &'a mut S {
-        &mut self.as_mut_fixed()[*i]
+    fn index_mut<'a>(&'a mut self, i: usize) -> &'a mut S {
+        &mut self.as_mut_fixed()[i]
     }
 }
 
@@ -295,17 +305,15 @@ impl<S: BaseNum> Index<usize> for Point3<S> {
     type Output = S;
 
     #[inline]
-    fn index<'a>(&'a self, i: &usize) -> &'a S {
-        &self.as_fixed()[*i]
+    fn index<'a>(&'a self, i: usize) -> &'a S {
+        &self.as_fixed()[i]
     }
 }
 
 impl<S: BaseNum> IndexMut<usize> for Point3<S> {
-    type Output = S;
-
     #[inline]
-    fn index_mut<'a>(&'a mut self, i: &usize) -> &'a mut S {
-        &mut self.as_mut_fixed()[*i]
+    fn index_mut<'a>(&'a mut self, i: usize) -> &'a mut S {
+        &mut self.as_mut_fixed()[i]
     }
 }
 
@@ -431,14 +439,37 @@ impl<S: BaseFloat> ApproxEq<S> for Point3<S> {
     }
 }
 
-impl<S: BaseNum> fmt::Show for Point2<S> {
+impl<S: BaseNum> fmt::Debug for Point2<S> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "[{:?}, {:?}]", self.x, self.y)
     }
 }
 
-impl<S: BaseNum> fmt::Show for Point3<S> {
+impl<S: BaseNum> fmt::Debug for Point3<S> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "[{:?}, {:?}, {:?}]", self.x, self.y, self.z)
+    }
+}
+
+impl<S: BaseFloat + 'static> Bound<S> for Point3<S> {
+    fn relate_plane(&self, plane: &Plane<S>) -> Relation {
+        let dist = self.dot(&plane.n);
+        if dist > plane.d {
+            Relation::In
+        }else if dist < plane.d {
+            Relation::Out
+        }else {
+            Relation::Cross
+        }
+    }
+
+    fn relate_clip_space(&self, projection: &Matrix4<S>) -> Relation {
+        use std::cmp::Ordering::*;
+        let p = projection.mul_v(&self.to_homogeneous());
+        match (p.x.abs().partial_cmp(&p.w), p.y.abs().partial_cmp(&p.w), p.z.abs().partial_cmp(&p.w)) {
+            (Some(Less), Some(Less), Some(Less)) => Relation::In,
+            (Some(Greater), _, _) | (_, Some(Greater), _) | (_, _, Some(Greater)) => Relation::Out,
+            _ => Relation::Cross,
+        }
     }
 }

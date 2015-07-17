@@ -1,5 +1,5 @@
 // Copyright 2013-2014 The CGMath Developers. For a full listing of the authors,
-// refer to the AUTHORS file at the top-level directionectory of this distribution.
+// refer to the Cargo.toml file at the top-level directory of this distribution.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -13,6 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use std::marker::PhantomData;
 use num::BaseNum;
 use point::{Point, Point2, Point3};
 use vector::{Vector, Vector2, Vector3};
@@ -20,17 +21,21 @@ use vector::{Vector, Vector2, Vector3};
 /// A generic ray starting at `origin` and extending infinitely in
 /// `direction`.
 #[derive(Copy, Clone, PartialEq, RustcEncodable, RustcDecodable)]
-pub struct Ray<P,V> {
+pub struct Ray<S, P, V> {
     pub origin: P,
     pub direction: V,
+    phantom_s: PhantomData<S>
 }
 
-#[old_impl_check]
-impl<S: BaseNum, V: Vector<S>, P: Point<S, V>> Ray<P, V> {
-    pub fn new(origin: P, direction: V) -> Ray<P,V> {
-        Ray { origin: origin, direction: direction }
+impl<S: BaseNum, V: Vector<S>, P: Point<S, V>> Ray<S, P, V> {
+    pub fn new(origin: P, direction: V) -> Ray<S, P, V> {
+        Ray {
+        	origin: origin,
+        	direction: direction,
+        	phantom_s: PhantomData
+        }
     }
 }
 
-pub type Ray2<S> = Ray<Point2<S>, Vector2<S>>;
-pub type Ray3<S> = Ray<Point3<S>, Vector3<S>>;
+pub type Ray2<S> = Ray<S, Point2<S>, Vector2<S>>;
+pub type Ray3<S> = Ray<S, Point3<S>, Vector3<S>>;

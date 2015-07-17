@@ -1,5 +1,5 @@
 // Copyright 2014 The CGMath Developers. For a full listing of the authors,
-// refer to the AUTHORS file at the top-level directory of this distribution.
+// refer to the Cargo.toml file at the top-level directory of this distribution.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -14,11 +14,9 @@
 // limitations under the License.
 
 
-
 extern crate cgmath;
 
 use cgmath::*;
-use std::num::Float;
 
 #[test]
 fn test_intersection() {
@@ -31,4 +29,21 @@ fn test_intersection() {
     assert!((sphere,r1).intersection().unwrap().approx_eq( &Point3::new(1f64.cos(), 0f64, 1f64.sin()) ));
     assert_eq!((sphere,r2).intersection(), Some(Point3::new(1f64, 0f64, 0f64)));
     assert_eq!((sphere,r3).intersection(), None);
+}
+
+#[test]
+fn test_bound() {
+    let point = Point3::new(1f32, 2.0, 3.0);
+    let sphere = Sphere { center: point, radius: 1.0 };
+    let normal = vec3(0f32, 0.0, 1.0);
+
+    assert_eq!(sphere.relate_plane(
+        &Plane::from_point_normal(point, normal)
+        ), Relation::Cross);
+    assert_eq!(sphere.relate_plane(
+        &Plane::from_point_normal(point.add_v(&normal.mul_s(-3.0)), normal),
+        ), Relation::In);
+    assert_eq!(sphere.relate_plane(
+        &Plane::from_point_normal(point.add_v(&normal.mul_s(3.0)), normal),
+        ), Relation::Out);
 }

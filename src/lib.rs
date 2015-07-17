@@ -1,5 +1,5 @@
 // Copyright 2013-2014 The CGMath Developers. For a full listing of the authors,
-// refer to the AUTHORS file at the top-level directory of this distribution.
+// refer to the Cargo.toml file at the top-level directory of this distribution.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,7 +15,6 @@
 
 #![crate_type = "rlib"]
 #![crate_type = "dylib"]
-#![feature(old_impl_check)]
 
 //! Computer graphics-centric math.
 //!
@@ -31,49 +30,39 @@
 //! `look_at`, `from_angle`, `from_euler`, and `from_axis_angle` methods.
 //! These are provided for convenience.
 
-extern crate "rustc-serialize" as rustc_serialize;
+extern crate num as rust_num;
+extern crate rustc_serialize;
+extern crate rand;
 
 // Re-exports
 
-pub use array::{Array1, Array2, FixedArray};
+pub use array::*;
+pub use matrix::*;
+pub use quaternion::*;
+pub use vector::*;
 
-pub use matrix::Matrix;
-pub use matrix::{Matrix2, Matrix3, Matrix4};
-pub use matrix::{ToMatrix2, ToMatrix3, ToMatrix4};
-pub use quaternion::{Quaternion, ToQuaternion};
-pub use vector::{Vector, EuclideanVector};
-pub use vector::{Vector2, Vector3, Vector4};
-pub use vector::dot;
-
-pub use angle::{rad, deg};
-pub use angle::{Angle, Rad, Deg};
-pub use angle::{ToRad, ToDeg};
-pub use angle::bisect;
-pub use angle::{sin, cos, tan, sin_cos};
-pub use angle::{cot, sec, csc};
-pub use angle::{acos, asin, atan, atan2};
+pub use angle::*;
 pub use plane::Plane;
-pub use point::{Point, Point2, Point3};
-pub use line::{Line, Line2, Line3};
-pub use ray::{Ray, Ray2, Ray3};
-pub use rotation::{Rotation, Rotation2, Rotation3};
-pub use rotation::{Basis3, Basis2};
-pub use rotation::{ToBasis2, ToBasis3};
-pub use transform::{Transform, Transform3};
-pub use transform::{Decomposed, AffineMatrix3};
+pub use point::*;
+pub use line::*;
+pub use ray::*;
+pub use rotation::*;
+pub use transform::*;
 
-pub use projection::{perspective, frustum, ortho};
-pub use projection::{Projection, PerspectiveFov, Perspective, Ortho};
+pub use projection::*;
 
-pub use aabb::{Aabb, Aabb2, Aabb3};
+pub use aabb::*;
+pub use bound::*;
 pub use cylinder::Cylinder;
 pub use frustum::{Frustum, FrustumPoints};
 pub use intersect::Intersect;
-pub use obb::{Obb2, Obb3};
+pub use obb::*;
 pub use sphere::Sphere;
 
 pub use approx::ApproxEq;
-pub use num::{PartialOrd, BaseNum, BaseInt, BaseFloat, One, one, Zero, zero};
+pub use num::*;
+
+pub use rust_num::{One, Zero, one, zero};
 
 // Modules
 
@@ -94,6 +83,7 @@ mod transform;
 mod projection;
 
 mod aabb;
+mod bound;
 mod cylinder;
 mod frustum;
 mod intersect;

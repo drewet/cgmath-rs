@@ -1,5 +1,5 @@
 // Copyright 2013-2014 The CGMath Developers. For a full listing of the authors,
-// refer to the AUTHORS file at the top-level directory of this distribution.
+// refer to the Cargo.toml file at the top-level directory of this distribution.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -13,21 +13,28 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
-
 extern crate cgmath;
 
 use cgmath::{Angle, Rad, Deg, rad, deg};
-use cgmath::{ToRad, ToDeg};
 use cgmath::ApproxEq;
 
 #[test]
 fn conv() {
-    assert!(deg(-5.0f64).to_rad().to_deg().approx_eq(&deg(-5.0f64)));
-    assert!(deg(30.0f64).to_rad().to_deg().approx_eq(&deg(30.0f64)));
+    let angle: Rad<_> = deg(-5.0f64).into();
+    let angle: Deg<_> = angle.into();
+    assert!(angle.approx_eq(&deg(-5.0f64)));
 
-    assert!(rad(-5.0f64).to_deg().to_rad().approx_eq(&rad(-5.0f64)));
-    assert!(rad(30.0f64).to_deg().to_rad().approx_eq(&rad(30.0f64)));
+    let angle: Rad<_> = deg(30.0f64).into();
+    let angle: Deg<_> = angle.into();
+    assert!(angle.approx_eq(&deg(30.0f64)));
+
+    let angle: Deg<_> = rad(-5.0f64).into();
+    let angle: Rad<_> = angle.into();
+    assert!(angle.approx_eq(&rad(-5.0f64)));
+
+    let angle: Deg<_> = rad(30.0f64).into();
+    let angle: Rad<_> = angle.into();
+    assert!(angle.approx_eq(&rad(30.0f64)));
 }
 
 #[test]

@@ -1,5 +1,5 @@
 // Copyright 2014 The CGMath Developers. For a full listing of the authors,
-// refer to the AUTHORS file at the top-level directory of this distribution.
+// refer to the Cargo.toml file at the top-level directory of this distribution.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -13,12 +13,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::num;
-use std::num::Float;
+use rust_num::{Float, NumCast};
+use rust_num::traits::cast;
 
-pub trait ApproxEq<T: Float>: Sized {
+pub trait ApproxEq<T: NumCast + Float>: Sized {
     fn approx_epsilon(_hack: Option<Self>) -> T {
-        num::cast(1.0e-5f64).unwrap()
+        cast(1.0e-5f64).unwrap()
     }
 
     fn approx_eq(&self, other: &Self) -> bool {

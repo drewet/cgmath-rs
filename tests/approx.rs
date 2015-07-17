@@ -1,5 +1,5 @@
 // Copyright 2014 The CGMath Developers. For a full listing of the authors,
-// refer to the AUTHORS file at the top-level directory of this distribution.
+// refer to the Cargo.toml file at the top-level directory of this distribution.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
 #[macro_use]
 extern crate cgmath;
 
@@ -25,7 +24,7 @@ fn macro_assert_approx_eq_eps() {
 }
 
 #[test]
-#[should_fail]
+#[should_panic]
 fn macro_assert_approx_eq_eps_fail() {
     assert_approx_eq_eps!(1.0f32, 1.02, 0.01);
 }
@@ -36,7 +35,7 @@ fn macro_assert_approx_eq() {
 }
 
 #[test]
-#[should_fail]
+#[should_panic]
 fn macro_assert_approx_eq_fail() {
     assert_approx_eq!(1.0f64 / 3.0, 0.333);
 }

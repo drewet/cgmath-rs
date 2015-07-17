@@ -1,5 +1,5 @@
 // Copyright 2013-2014 The CGMath Developers. For a full listing of the authors,
-// refer to the AUTHORS file at the top-level directory of this distribution.
+// refer to the Cargo.toml file at the top-level directory of this distribution.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -13,11 +13,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
-
 extern crate cgmath;
 
-use cgmath::{ToMatrix4, ToMatrix3};
+use cgmath::{Matrix4, Matrix3};
 use cgmath::Quaternion;
 
 use cgmath::{Rad, rad, ApproxEq};
@@ -30,8 +28,10 @@ fn to_matrix4()
 {
     let quaternion = Quaternion::new(2f32, 3f32, 4f32, 5f32);
 
-    let matrix_short = quaternion.to_matrix4();
-    let matrix_long = quaternion.to_matrix3().to_matrix4();
+    let matrix_short: Matrix4<_> = quaternion.into();
+
+    let matrix_long: Matrix3<_> = quaternion.into();
+    let matrix_long: Matrix4<_> = matrix_long.into();
 
     assert!(matrix_short == matrix_long);
 }
